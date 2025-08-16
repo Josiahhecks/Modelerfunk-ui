@@ -1,4 +1,3 @@
-```lua
 --[[
     Ultimate UI Library - Unified Roblox Interface Suite
     
@@ -1536,4 +1535,3 @@ end
 UltimateUI:CreateFolder()
 
 return UltimateUI
-```
