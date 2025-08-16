@@ -1,4 +1,3 @@
-```lua
 --[[
     UltimateUI - The Ultimate Roblox Interface Suite
 
@@ -937,4 +936,3 @@ SetupBlur()
 ToggleBlur(true)
 
 return UltimateUI
-```
