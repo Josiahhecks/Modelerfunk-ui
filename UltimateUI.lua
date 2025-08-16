@@ -1,0 +1,1531 @@
+--[[
+    Ultimate UI Library - Unified Roblox Interface Suite
+    
+    Credits to Original Libraries and Contributors:
+    
+    Atonium UI:
+    - Private library contributors
+    
+    Luna Interface Suite by Nebula Softworks:
+    - Hunter (Nebula Softworks) | Designing And Programming | Main Developer
+    - JustHey (Nebula Softworks) | Configurations, Bug Fixing And More! | Co Developer
+    - Throit | Color Picker
+    - Wally | Dragging And Certain Functions
+    - Sirius | PCall Parsing, Notifications, Slider And Home Tab
+    
+    Starlight Interface Suite by Nebula Softworks:
+    - Hunter (Nebula Softworks) | Designing And Programming | Main Developer
+    - JustHey (Nebula Softworks) | Configurations, Programming, Bug Fixing | Co Developer
+    - Pookie Pepelss (Nebula Softworks) | Bug And Feature Testing | Lead Tester
+    - Inori | Configuration and Layout Concept
+    
+    WindUI:
+    - .ftgs#0 (Discord) | Main Developer
+    
+    Ultimate UI combines and enhances features from all these libraries
+    with mobile optimization and simplified API structure.
+]]
+
+local UltimateUI = {
+    Version = "1.0.0",
+    Folder = "UltimateUI",
+    Flags = {},
+    Connections = {},
+    Objects = {},
+    ThemeObjects = {},
+    FontObjects = {},
+    LocalizationObjects = {},
+    
+    -- Core settings
+    CurrentTheme = "Dark",
+    Language = "en",
+    MobileOptimized = false,
+    WindowKeybind = Enum.KeyCode.Insert,
+    
+    -- State management
+    WindowVisible = true,
+    Dragging = false,
+    DragStart = nil,
+    StartPos = nil,
+    
+    -- Mobile detection
+    IsMobile = false,
+    
+    -- Configuration
+    ConfigEnabled = true,
+    AutoSave = true,
+}
+
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
+local CoreGui = game:GetService("CoreGui")
+local TextService = game:GetService("TextService")
+
+local Player = Players.LocalPlayer
+local Mouse = Player:GetMouse()
+
+-- Mobile detection
+UltimateUI.IsMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+-- Utility Functions
+local function SafeCallback(callback, ...)
+    if not callback then return end
+    
+    local success, error = pcall(callback, ...)
+    if not success then
+        warn("[UltimateUI Error] " .. tostring(error))
+    end
+end
+
+local function CreateTween(object, info, properties)
+    local tween = TweenService:Create(object, info, properties)
+    tween:Play()
+    return tween
+end
+
+local function GetTextSize(text, textSize, font, frameSize)
+    return TextService:GetTextSize(text, textSize, font, frameSize)
+end
+
+-- Theme System
+UltimateUI.Themes = {
+    Dark = {
+        Background = Color3.fromRGB(19, 20, 24),
+        Secondary = Color3.fromRGB(27, 28, 33),
+        Accent = Color3.fromRGB(67, 139, 202),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(180, 180, 180),
+        Border = Color3.fromRGB(40, 41, 46),
+        Success = Color3.fromRGB(67, 160, 71),
+        Warning = Color3.fromRGB(255, 193, 7),
+        Error = Color3.fromRGB(244, 67, 54),
+    },
+    Light = {
+        Background = Color3.fromRGB(255, 255, 255),
+        Secondary = Color3.fromRGB(245, 245, 245),
+        Accent = Color3.fromRGB(33, 150, 243),
+        Text = Color3.fromRGB(33, 33, 33),
+        TextSecondary = Color3.fromRGB(117, 117, 117),
+        Border = Color3.fromRGB(224, 224, 224),
+        Success = Color3.fromRGB(76, 175, 80),
+        Warning = Color3.fromRGB(255, 152, 0),
+        Error = Color3.fromRGB(244, 67, 54),
+    },
+    Ocean = {
+        Background = Color3.fromRGB(15, 26, 44),
+        Secondary = Color3.fromRGB(24, 38, 61),
+        Accent = Color3.fromRGB(59, 178, 184),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(178, 186, 194),
+        Border = Color3.fromRGB(44, 62, 80),
+        Success = Color3.fromRGB(46, 204, 113),
+        Warning = Color3.fromRGB(241, 196, 15),
+        Error = Color3.fromRGB(231, 76, 60),
+    }
+}
+
+-- Localization System
+UltimateUI.Translations = {
+    en = {
+        close = "Close",
+        minimize = "Minimize",
+        maximize = "Maximize",
+        settings = "Settings",
+        theme = "Theme",
+        language = "Language",
+        enabled = "Enabled",
+        disabled = "Disabled",
+        value = "Value",
+        confirm = "Confirm",
+        cancel = "Cancel",
+    },
+    es = {
+        close = "Cerrar",
+        minimize = "Minimizar",
+        maximize = "Maximizar",
+        settings = "Configuración",
+        theme = "Tema",
+        language = "Idioma",
+        enabled = "Habilitado",
+        disabled = "Deshabilitado",
+        value = "Valor",
+        confirm = "Confirmar",
+        cancel = "Cancelar",
+    },
+    fr = {
+        close = "Fermer",
+        minimize = "Réduire",
+        maximize = "Agrandir",
+        settings = "Paramètres",
+        theme = "Thème",
+        language = "Langue",
+        enabled = "Activé",
+        disabled = "Désactivé",
+        value = "Valeur",
+        confirm = "Confirmer",
+        cancel = "Annuler",
+    }
+}
+
+-- Icon System (using placeholder IDs)
+UltimateUI.Icons = {
+    home = "rbxassetid://10723434711",
+    settings = "rbxassetid://10734950309",
+    user = "rbxassetid://10734949856",
+    star = "rbxassetid://10734896301",
+    heart = "rbxassetid://10723424505",
+    check = "rbxassetid://10734884548",
+    x = "rbxassetid://10734884975",
+    plus = "rbxassetid://10734896629",
+    minus = "rbxassetid://10734896382",
+    arrow_up = "rbxassetid://10709790948",
+    arrow_down = "rbxassetid://10709791437",
+    arrow_left = "rbxassetid://10709792216",
+    arrow_right = "rbxassetid://10709791992",
+    info = "rbxassetid://10734898355",
+    warning = "rbxassetid://10734950598",
+    error = "rbxassetid://10734899175",
+    success = "rbxassetid://10734896487",
+}
+
+-- Core Functions
+function UltimateUI:GetThemeColor(colorName)
+    return self.Themes[self.CurrentTheme][colorName] or self.Themes.Dark[colorName]
+end
+
+function UltimateUI:GetTranslation(key)
+    local translations = self.Translations[self.Language] or self.Translations.en
+    return translations[key] or key
+end
+
+function UltimateUI:AddThemeObject(object, properties)
+    self.ThemeObjects[object] = properties
+    self:UpdateTheme(object)
+end
+
+function UltimateUI:UpdateTheme(specificObject)
+    local function applyTheme(obj, props)
+        for property, colorName in pairs(props) do
+            obj[property] = self:GetThemeColor(colorName)
+        end
+    end
+    
+    if specificObject then
+        local props = self.ThemeObjects[specificObject]
+        if props then
+            applyTheme(specificObject, props)
+        end
+    else
+        for obj, props in pairs(self.ThemeObjects) do
+            if obj and obj.Parent then
+                applyTheme(obj, props)
+            end
+        end
+    end
+end
+
+function UltimateUI:SetTheme(themeName)
+    if self.Themes[themeName] then
+        self.CurrentTheme = themeName
+        self:UpdateTheme()
+        self:SaveConfig()
+    end
+end
+
+function UltimateUI:SetLanguage(language)
+    if self.Translations[language] then
+        self.Language = language
+        self:UpdateLocalization()
+        self:SaveConfig()
+    end
+end
+
+function UltimateUI:UpdateLocalization()
+    for obj, key in pairs(self.LocalizationObjects) do
+        if obj and obj.Parent then
+            obj.Text = self:GetTranslation(key)
+        end
+    end
+end
+
+function UltimateUI:AddConnection(connection)
+    table.insert(self.Connections, connection)
+end
+
+function UltimateUI:Disconnect()
+    for _, connection in pairs(self.Connections) do
+        if connection then
+            connection:Disconnect()
+        end
+    end
+    self.Connections = {}
+end
+
+function UltimateUI:SaveConfig()
+    if not self.ConfigEnabled then return end
+    
+    local config = {
+        Theme = self.CurrentTheme,
+        Language = self.Language,
+        Flags = self.Flags,
+        WindowVisible = self.WindowVisible,
+    }
+    
+    local success, result = pcall(function()
+        local encoded = HttpService:JSONEncode(config)
+        if writefile then
+            writefile(self.Folder .. "/config.json", encoded)
+        end
+    end)
+    
+    if not success then
+        warn("[UltimateUI] Failed to save config: " .. tostring(result))
+    end
+end
+
+function UltimateUI:LoadConfig()
+    if not self.ConfigEnabled then return end
+    
+    local success, result = pcall(function()
+        if readfile and isfile and isfile(self.Folder .. "/config.json") then
+            local data = readfile(self.Folder .. "/config.json")
+            local config = HttpService:JSONDecode(data)
+            
+            self.CurrentTheme = config.Theme or self.CurrentTheme
+            self.Language = config.Language or self.Language
+            self.Flags = config.Flags or {}
+            self.WindowVisible = config.WindowVisible ~= false
+            
+            return true
+        end
+    end)
+    
+    if not success then
+        warn("[UltimateUI] Failed to load config: " .. tostring(result))
+    end
+    
+    return false
+end
+
+function UltimateUI:CreateFolder()
+    if makefolder and not isfolder(self.Folder) then
+        makefolder(self.Folder)
+    end
+end
+
+-- Notification System
+function UltimateUI:Notify(options)
+    options = options or {}
+    local title = options.Title or "Notification"
+    local content = options.Content or ""
+    local duration = options.Duration or 5
+    local icon = options.Icon or "info"
+    local type = options.Type or "info"
+    
+    -- Create notification GUI
+    local notificationGui = Instance.new("ScreenGui")
+    notificationGui.Name = "UltimateUI_Notification"
+    notificationGui.ResetOnSpawn = false
+    notificationGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    notificationGui.Parent = CoreGui
+    
+    -- Main frame
+    local frame = Instance.new("Frame")
+    frame.Name = "NotificationFrame"
+    frame.Size = UDim2.new(0, 350, 0, 80)
+    frame.Position = UDim2.new(1, -370, 0, 20)
+    frame.BackgroundColor3 = self:GetThemeColor("Secondary")
+    frame.BorderSizePixel = 0
+    frame.Parent = notificationGui
+    
+    -- Corner
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    -- Shadow
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.Size = UDim2.new(1, 10, 1, 10)
+    shadow.Position = UDim2.new(0, -5, 0, -5)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://6014261993"
+    shadow.ImageColor3 = Color3.new(0, 0, 0)
+    shadow.ImageTransparency = 0.8
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(99, 99, 99, 99)
+    shadow.ZIndex = -1
+    shadow.Parent = frame
+    
+    -- Icon
+    local iconFrame = Instance.new("ImageLabel")
+    iconFrame.Name = "Icon"
+    iconFrame.Size = UDim2.new(0, 24, 0, 24)
+    iconFrame.Position = UDim2.new(0, 15, 0, 15)
+    iconFrame.BackgroundTransparency = 1
+    iconFrame.Image = self.Icons[icon] or self.Icons.info
+    iconFrame.ImageColor3 = self:GetThemeColor("Accent")
+    iconFrame.Parent = frame
+    
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, -55, 0, 20)
+    titleLabel.Position = UDim2.new(0, 50, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.TextColor3 = self:GetThemeColor("Text")
+    titleLabel.TextSize = 14
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.TextYAlignment = Enum.TextYAlignment.Top
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Parent = frame
+    
+    -- Content
+    local contentLabel = Instance.new("TextLabel")
+    contentLabel.Name = "Content"
+    contentLabel.Size = UDim2.new(1, -55, 0, 40)
+    contentLabel.Position = UDim2.new(0, 50, 0, 30)
+    contentLabel.BackgroundTransparency = 1
+    contentLabel.Text = content
+    contentLabel.TextColor3 = self:GetThemeColor("TextSecondary")
+    contentLabel.TextSize = 12
+    contentLabel.TextXAlignment = Enum.TextXAlignment.Left
+    contentLabel.TextYAlignment = Enum.TextYAlignment.Top
+    contentLabel.TextWrapped = true
+    contentLabel.Font = Enum.Font.Gotham
+    contentLabel.Parent = frame
+    
+    -- Progress bar
+    local progressBar = Instance.new("Frame")
+    progressBar.Name = "ProgressBar"
+    progressBar.Size = UDim2.new(1, 0, 0, 2)
+    progressBar.Position = UDim2.new(0, 0, 1, -2)
+    progressBar.BackgroundColor3 = self:GetThemeColor("Accent")
+    progressBar.BorderSizePixel = 0
+    progressBar.Parent = frame
+    
+    local progressCorner = Instance.new("UICorner")
+    progressCorner.CornerRadius = UDim.new(0, 1)
+    progressCorner.Parent = progressBar
+    
+    -- Add theme objects
+    self:AddThemeObject(frame, {BackgroundColor3 = "Secondary"})
+    self:AddThemeObject(iconFrame, {ImageColor3 = "Accent"})
+    self:AddThemeObject(titleLabel, {TextColor3 = "Text"})
+    self:AddThemeObject(contentLabel, {TextColor3 = "TextSecondary"})
+    self:AddThemeObject(progressBar, {BackgroundColor3 = "Accent"})
+    
+    -- Animate in
+    CreateTween(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Position = UDim2.new(1, -370, 0, 20)
+    })
+    
+    -- Progress animation
+    CreateTween(progressBar, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+        Size = UDim2.new(0, 0, 0, 2)
+    })
+    
+    -- Auto-dismiss
+    task.spawn(function()
+        task.wait(duration)
+        
+        CreateTween(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Position = UDim2.new(1, 0, 0, 20)
+        })
+        
+        task.wait(0.3)
+        notificationGui:Destroy()
+    end)
+    
+    -- Click to dismiss
+    local clickDetector = Instance.new("TextButton")
+    clickDetector.Size = UDim2.new(1, 0, 1, 0)
+    clickDetector.BackgroundTransparency = 1
+    clickDetector.Text = ""
+    clickDetector.Parent = frame
+    
+    clickDetector.MouseButton1Click:Connect(function()
+        CreateTween(frame, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Position = UDim2.new(1, 0, 0, 20)
+        })
+        
+        task.wait(0.2)
+        notificationGui:Destroy()
+    end)
+    
+    return notificationGui
+end
+
+-- Window Creation
+function UltimateUI:CreateWindow(options)
+    options = options or {}
+    local title = options.Title or "UltimateUI"
+    local size = options.Size or (self.IsMobile and UDim2.new(0, 400, 0, 300) or UDim2.new(0, 600, 0, 400))
+    local keySystem = options.KeySystem or {Enabled = false}
+    
+    -- Create folder for configs
+    self:CreateFolder()
+    
+    -- Load saved configuration
+    self:LoadConfig()
+    
+    -- Main ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "UltimateUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.Parent = CoreGui
+    
+    -- Main Window Frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = size
+    mainFrame.Position = UDim2.new(0.5, -size.X.Offset/2, 0.5, -size.Y.Offset/2)
+    mainFrame.BackgroundColor3 = self:GetThemeColor("Background")
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = self.WindowVisible
+    mainFrame.Parent = screenGui
+    
+    -- Corner
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 12)
+    mainCorner.Parent = mainFrame
+    
+    -- Shadow
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.Size = UDim2.new(1, 20, 1, 20)
+    shadow.Position = UDim2.new(0, -10, 0, -10)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://6014261993"
+    shadow.ImageColor3 = Color3.new(0, 0, 0)
+    shadow.ImageTransparency = 0.7
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(99, 99, 99, 99)
+    shadow.ZIndex = -1
+    shadow.Parent = mainFrame
+    
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
+    titleBar.Position = UDim2.new(0, 0, 0, 0)
+    titleBar.BackgroundColor3 = self:GetThemeColor("Secondary")
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 12)
+    titleCorner.Parent = titleBar
+    
+    -- Title corner fix
+    local titleFix = Instance.new("Frame")
+    titleFix.Size = UDim2.new(1, 0, 0, 20)
+    titleFix.Position = UDim2.new(0, 0, 1, -20)
+    titleFix.BackgroundColor3 = self:GetThemeColor("Secondary")
+    titleFix.BorderSizePixel = 0
+    titleFix.Parent = titleBar
+    
+    -- Title Text
+    local titleText = Instance.new("TextLabel")
+    titleText.Name = "TitleText"
+    titleText.Size = UDim2.new(1, -100, 1, 0)
+    titleText.Position = UDim2.new(0, 15, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Text = title
+    titleText.TextColor3 = self:GetThemeColor("Text")
+    titleText.TextSize = 16
+    titleText.TextXAlignment = Enum.TextXAlignment.Left
+    titleText.Font = Enum.Font.GothamBold
+    titleText.Parent = titleBar
+    
+    -- Control Buttons
+    local controlFrame = Instance.new("Frame")
+    controlFrame.Name = "Controls"
+    controlFrame.Size = UDim2.new(0, 80, 1, 0)
+    controlFrame.Position = UDim2.new(1, -80, 0, 0)
+    controlFrame.BackgroundTransparency = 1
+    controlFrame.Parent = titleBar
+    
+    local controlLayout = Instance.new("UIListLayout")
+    controlLayout.FillDirection = Enum.FillDirection.Horizontal
+    controlLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    controlLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    controlLayout.Padding = UDim.new(0, 5)
+    controlLayout.Parent = controlFrame
+    
+    -- Minimize Button
+    local minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Name = "MinimizeBtn"
+    minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+    minimizeBtn.BackgroundColor3 = self:GetThemeColor("Background")
+    minimizeBtn.BorderSizePixel = 0
+    minimizeBtn.Text = "−"
+    minimizeBtn.TextColor3 = self:GetThemeColor("Text")
+    minimizeBtn.TextSize = 16
+    minimizeBtn.Font = Enum.Font.GothamBold
+    minimizeBtn.Parent = controlFrame
+    
+    local minimizeCorner = Instance.new("UICorner")
+    minimizeCorner.CornerRadius = UDim.new(0, 6)
+    minimizeCorner.Parent = minimizeBtn
+    
+    -- Close Button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseBtn"
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.BackgroundColor3 = self:GetThemeColor("Error")
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Text = "×"
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.TextSize = 16
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Parent = controlFrame
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = closeBtn
+    
+    -- Add theme objects
+    self:AddThemeObject(mainFrame, {BackgroundColor3 = "Background"})
+    self:AddThemeObject(titleBar, {BackgroundColor3 = "Secondary"})
+    self:AddThemeObject(titleFix, {BackgroundColor3 = "Secondary"})
+    self:AddThemeObject(titleText, {TextColor3 = "Text"})
+    self:AddThemeObject(minimizeBtn, {BackgroundColor3 = "Background", TextColor3 = "Text"})
+    self:AddThemeObject(closeBtn, {BackgroundColor3 = "Error"})
+    
+    -- Tab Container
+    local tabContainer = Instance.new("Frame")
+    tabContainer.Name = "TabContainer"
+    tabContainer.Size = UDim2.new(0, 150, 1, -40)
+    tabContainer.Position = UDim2.new(0, 0, 0, 40)
+    tabContainer.BackgroundColor3 = self:GetThemeColor("Secondary")
+    tabContainer.BorderSizePixel = 0
+    tabContainer.Parent = mainFrame
+    
+    -- Tab list
+    local tabList = Instance.new("ScrollingFrame")
+    tabList.Name = "TabList"
+    tabList.Size = UDim2.new(1, 0, 1, -10)
+    tabList.Position = UDim2.new(0, 0, 0, 10)
+    tabList.BackgroundTransparency = 1
+    tabList.BorderSizePixel = 0
+    tabList.ScrollBarThickness = 4
+    tabList.ScrollBarImageColor3 = self:GetThemeColor("Accent")
+    tabList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    tabList.Parent = tabContainer
+    
+    local tabListLayout = Instance.new("UIListLayout")
+    tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabListLayout.Padding = UDim.new(0, 5)
+    tabListLayout.Parent = tabList
+    
+    local tabPadding = Instance.new("UIPadding")
+    tabPadding.PaddingLeft = UDim.new(0, 10)
+    tabPadding.PaddingRight = UDim.new(0, 10)
+    tabPadding.PaddingTop = UDim.new(0, 5)
+    tabPadding.Parent = tabList
+    
+    -- Content Container
+    local contentContainer = Instance.new("Frame")
+    contentContainer.Name = "ContentContainer"
+    contentContainer.Size = UDim2.new(1, -150, 1, -40)
+    contentContainer.Position = UDim2.new(0, 150, 0, 40)
+    contentContainer.BackgroundColor3 = self:GetThemeColor("Background")
+    contentContainer.BorderSizePixel = 0
+    contentContainer.Parent = mainFrame
+    
+    -- Add theme objects
+    self:AddThemeObject(tabContainer, {BackgroundColor3 = "Secondary"})
+    self:AddThemeObject(tabList, {ScrollBarImageColor3 = "Accent"})
+    self:AddThemeObject(contentContainer, {BackgroundColor3 = "Background"})
+    
+    -- Mobile Toggle Button
+    local mobileToggle = nil
+    if self.IsMobile then
+        mobileToggle = Instance.new("TextButton")
+        mobileToggle.Name = "MobileToggle"
+        mobileToggle.Size = UDim2.new(0, 60, 0, 60)
+        mobileToggle.Position = UDim2.new(1, -80, 1, -80)
+        mobileToggle.BackgroundColor3 = self:GetThemeColor("Accent")
+        mobileToggle.BorderSizePixel = 0
+        mobileToggle.Text = "UI"
+        mobileToggle.TextColor3 = Color3.new(1, 1, 1)
+        mobileToggle.TextSize = 18
+        mobileToggle.Font = Enum.Font.GothamBold
+        mobileToggle.ZIndex = 10
+        mobileToggle.Parent = screenGui
+        
+        local mobileCorner = Instance.new("UICorner")
+        mobileCorner.CornerRadius = UDim.new(0, 30)
+        mobileCorner.Parent = mobileToggle
+        
+        self:AddThemeObject(mobileToggle, {BackgroundColor3 = "Accent"})
+        
+        mobileToggle.MouseButton1Click:Connect(function()
+            self:ToggleWindow()
+        end)
+    end
+    
+    -- Dragging functionality
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+    
+    local function updateDrag(input)
+        local delta = input.Position - dragStart
+        local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        CreateTween(mainFrame, TweenInfo.new(0.1), {Position = newPos})
+    end
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    titleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging then
+                updateDrag(input)
+            end
+        end
+    end)
+    
+    -- Control button events
+    minimizeBtn.MouseButton1Click:Connect(function()
+        self:ToggleWindow()
+    end)
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        self:Destroy()
+    end)
+    
+    -- Keybind toggle
+    self:AddConnection(UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == self.WindowKeybind then
+            self:ToggleWindow()
+        end
+    end))
+    
+    -- Update canvas size for tab list
+    tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        tabList.CanvasSize = UDim2.new(0, 0, 0, tabListLayout.AbsoluteContentSize.Y + 10)
+    end)
+    
+    -- Window object
+    local window = {
+        GUI = screenGui,
+        MainFrame = mainFrame,
+        TabContainer = tabContainer,
+        TabList = tabList,
+        ContentContainer = contentContainer,
+        MobileToggle = mobileToggle,
+        Tabs = {},
+        CurrentTab = nil,
+    }
+    
+    function window:CreateTab(options)
+        options = options or {}
+        local name = options.Name or "Tab"
+        local icon = options.Icon or "home"
+        local layoutOrder = options.LayoutOrder or (#self.Tabs + 1)
+        
+        -- Tab Button
+        local tabBtn = Instance.new("TextButton")
+        tabBtn.Name = "Tab_" .. name
+        tabBtn.Size = UDim2.new(1, 0, 0, 40)
+        tabBtn.BackgroundColor3 = UltimateUI:GetThemeColor("Background")
+        tabBtn.BorderSizePixel = 0
+        tabBtn.Text = ""
+        tabBtn.LayoutOrder = layoutOrder
+        tabBtn.Parent = self.TabList
+        
+        local tabCorner = Instance.new("UICorner")
+        tabCorner.CornerRadius = UDim.new(0, 8)
+        tabCorner.Parent = tabBtn
+        
+        -- Tab Icon
+        local tabIcon = Instance.new("ImageLabel")
+        tabIcon.Name = "Icon"
+        tabIcon.Size = UDim2.new(0, 20, 0, 20)
+        tabIcon.Position = UDim2.new(0, 10, 0.5, -10)
+        tabIcon.BackgroundTransparency = 1
+        tabIcon.Image = UltimateUI.Icons[icon] or UltimateUI.Icons.home
+        tabIcon.ImageColor3 = UltimateUI:GetThemeColor("TextSecondary")
+        tabIcon.Parent = tabBtn
+        
+        -- Tab Text
+        local tabText = Instance.new("TextLabel")
+        tabText.Name = "Text"
+        tabText.Size = UDim2.new(1, -40, 1, 0)
+        tabText.Position = UDim2.new(0, 35, 0, 0)
+        tabText.BackgroundTransparency = 1
+        tabText.Text = name
+        tabText.TextColor3 = UltimateUI:GetThemeColor("TextSecondary")
+        tabText.TextSize = 14
+        tabText.TextXAlignment = Enum.TextXAlignment.Left
+        tabText.Font = Enum.Font.Gotham
+        tabText.Parent = tabBtn
+        
+        -- Tab Content Frame
+        local tabContent = Instance.new("ScrollingFrame")
+        tabContent.Name = "Content_" .. name
+        tabContent.Size = UDim2.new(1, 0, 1, 0)
+        tabContent.Position = UDim2.new(0, 0, 0, 0)
+        tabContent.BackgroundTransparency = 1
+        tabContent.BorderSizePixel = 0
+        tabContent.ScrollBarThickness = 4
+        tabContent.ScrollBarImageColor3 = UltimateUI:GetThemeColor("Accent")
+        tabContent.CanvasSize = UDim2.new(0, 0, 0, 0)
+        tabContent.Visible = false
+        tabContent.Parent = self.ContentContainer
+        
+        local contentLayout = Instance.new("UIListLayout")
+        contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        contentLayout.Padding = UDim.new(0, 10)
+        contentLayout.Parent = tabContent
+        
+        local contentPadding = Instance.new("UIPadding")
+        contentPadding.PaddingAll = UDim.new(0, 15)
+        contentPadding.Parent = tabContent
+        
+        -- Add theme objects
+        UltimateUI:AddThemeObject(tabBtn, {BackgroundColor3 = "Background"})
+        UltimateUI:AddThemeObject(tabIcon, {ImageColor3 = "TextSecondary"})
+        UltimateUI:AddThemeObject(tabText, {TextColor3 = "TextSecondary"})
+        UltimateUI:AddThemeObject(tabContent, {ScrollBarImageColor3 = "Accent"})
+        
+        -- Tab functionality
+        local function selectTab()
+            -- Deselect all tabs
+            for _, tab in pairs(self.Tabs) do
+                tab.Button.BackgroundColor3 = UltimateUI:GetThemeColor("Background")
+                tab.Icon.ImageColor3 = UltimateUI:GetThemeColor("TextSecondary")
+                tab.Text.TextColor3 = UltimateUI:GetThemeColor("TextSecondary")
+                tab.Content.Visible = false
+            end
+            
+            -- Select this tab
+            tabBtn.BackgroundColor3 = UltimateUI:GetThemeColor("Accent")
+            tabIcon.ImageColor3 = Color3.new(1, 1, 1)
+            tabText.TextColor3 = Color3.new(1, 1, 1)
+            tabContent.Visible = true
+            self.CurrentTab = name
+        end
+        
+        tabBtn.MouseButton1Click:Connect(selectTab)
+        
+        -- Touch support
+        if UltimateUI.IsMobile then
+            tabBtn.TouchTap:Connect(selectTab)
+        end
+        
+        -- Update canvas size
+        contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            tabContent.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 30)
+        end)
+        
+        -- Tab object
+        local tab = {
+            Name = name,
+            Button = tabBtn,
+            Icon = tabIcon,
+            Text = tabText,
+            Content = tabContent,
+            Elements = {},
+        }
+        
+        -- Select first tab
+        if #self.Tabs == 0 then
+            selectTab()
+        end
+        
+        self.Tabs[name] = tab
+        table.insert(self.Tabs, tab)
+        
+        -- Tab methods
+        function tab:CreateToggle(options)
+            options = options or {}
+            local toggleName = options.Name or "Toggle"
+            local flag = options.Flag or toggleName:lower():gsub("%s+", "_")
+            local defaultValue = options.Default or false
+            local callback = options.Callback
+            local mobileOptimized = options.MobileOptimized or UltimateUI.IsMobile
+            
+            -- Set default flag value
+            UltimateUI.Flags[flag] = UltimateUI.Flags[flag] or defaultValue
+            
+            -- Toggle Frame
+            local toggleFrame = Instance.new("Frame")
+            toggleFrame.Name = "Toggle_" .. toggleName
+            toggleFrame.Size = UDim2.new(1, 0, 0, mobileOptimized and 60 or 40)
+            toggleFrame.BackgroundColor3 = UltimateUI:GetThemeColor("Secondary")
+            toggleFrame.BorderSizePixel = 0
+            toggleFrame.Parent = self.Content
+            
+            local toggleCorner = Instance.new("UICorner")
+            toggleCorner.CornerRadius = UDim.new(0, 8)
+            toggleCorner.Parent = toggleFrame
+            
+            -- Toggle Button
+            local toggleBtn = Instance.new("TextButton")
+            toggleBtn.Name = "Button"
+            toggleBtn.Size = UDim2.new(1, 0, 1, 0)
+            toggleBtn.BackgroundTransparency = 1
+            toggleBtn.Text = ""
+            toggleBtn.Parent = toggleFrame
+            
+            -- Toggle Text
+            local toggleText = Instance.new("TextLabel")
+            toggleText.Name = "Text"
+            toggleText.Size = UDim2.new(1, -60, 1, 0)
+            toggleText.Position = UDim2.new(0, 15, 0, 0)
+            toggleText.BackgroundTransparency = 1
+            toggleText.Text = toggleName
+            toggleText.TextColor3 = UltimateUI:GetThemeColor("Text")
+            toggleText.TextSize = mobileOptimized and 16 or 14
+            toggleText.TextXAlignment = Enum.TextXAlignment.Left
+            toggleText.Font = Enum.Font.Gotham
+            toggleText.Parent = toggleFrame
+            
+            -- Toggle Switch Container
+            local switchContainer = Instance.new("Frame")
+            switchContainer.Name = "Switch"
+            switchContainer.Size = UDim2.new(0, mobileOptimized and 50 or 40, 0, mobileOptimized and 28 or 20)
+            switchContainer.Position = UDim2.new(1, mobileOptimized and -60 or -50, 0.5, mobileOptimized and -14 or -10)
+            switchContainer.BackgroundColor3 = UltimateUI.Flags[flag] and UltimateUI:GetThemeColor("Accent") or UltimateUI:GetThemeColor("Border")
+            switchContainer.BorderSizePixel = 0
+            switchContainer.Parent = toggleFrame
+            
+            local switchCorner = Instance.new("UICorner")
+            switchCorner.CornerRadius = UDim.new(1, 0)
+            switchCorner.Parent = switchContainer
+            
+            -- Toggle Circle
+            local toggleCircle = Instance.new("Frame")
+            toggleCircle.Name = "Circle"
+            toggleCircle.Size = UDim2.new(0, mobileOptimized and 24 or 16, 0, mobileOptimized and 24 or 16)
+            toggleCircle.Position = UDim2.new(0, mobileOptimized and 2 or 2, 0.5, mobileOptimized and -12 or -8)
+            toggleCircle.BackgroundColor3 = Color3.new(1, 1, 1)
+            toggleCircle.BorderSizePixel = 0
+            toggleCircle.Parent = switchContainer
+            
+            local circleCorner = Instance.new("UICorner")
+            circleCorner.CornerRadius = UDim.new(1, 0)
+            circleCorner.Parent = toggleCircle
+            
+            -- Add theme objects
+            UltimateUI:AddThemeObject(toggleFrame, {BackgroundColor3 = "Secondary"})
+            UltimateUI:AddThemeObject(toggleText, {TextColor3 = "Text"})
+            
+            -- Update visual state
+            local function updateToggle(value, animate)
+                UltimateUI.Flags[flag] = value
+                
+                local circlePos = value and UDim2.new(1, mobileOptimized and -26 or -18, 0.5, mobileOptimized and -12 or -8) or UDim2.new(0, mobileOptimized and 2 or 2, 0.5, mobileOptimized and -12 or -8)
+                local switchColor = value and UltimateUI:GetThemeColor("Accent") or UltimateUI:GetThemeColor("Border")
+                
+                if animate then
+                    CreateTween(toggleCircle, TweenInfo.new(0.2), {Position = circlePos})
+                    CreateTween(switchContainer, TweenInfo.new(0.2), {BackgroundColor3 = switchColor})
+                else
+                    toggleCircle.Position = circlePos
+                    switchContainer.BackgroundColor3 = switchColor
+                end
+                
+                if UltimateUI.AutoSave then
+                    UltimateUI:SaveConfig()
+                end
+                
+                SafeCallback(callback, value)
+            end
+            
+            -- Initialize
+            updateToggle(UltimateUI.Flags[flag], false)
+            
+            -- Click events
+            toggleBtn.MouseButton1Click:Connect(function()
+                updateToggle(not UltimateUI.Flags[flag], true)
+            end)
+            
+            -- Touch support
+            if UltimateUI.IsMobile then
+                toggleBtn.TouchTap:Connect(function()
+                    updateToggle(not UltimateUI.Flags[flag], true)
+                end)
+            end
+            
+            -- Toggle object
+            local toggle = {
+                Frame = toggleFrame,
+                Flag = flag,
+                Set = function(value)
+                    updateToggle(value, true)
+                end,
+                Get = function()
+                    return UltimateUI.Flags[flag]
+                end,
+            }
+            
+            self.Elements[toggleName] = toggle
+            return toggle
+        end
+        
+        function tab:CreateSlider(options)
+            options = options or {}
+            local sliderName = options.Name or "Slider"
+            local flag = options.Flag or sliderName:lower():gsub("%s+", "_")
+            local range = options.Range or {0, 100}
+            local increment = options.Increment or 1
+            local defaultValue = options.Default or range[1]
+            local callback = options.Callback
+            local suffix = options.Suffix or ""
+            
+            -- Set default flag value
+            UltimateUI.Flags[flag] = UltimateUI.Flags[flag] or defaultValue
+            
+            -- Slider Frame
+            local sliderFrame = Instance.new("Frame")
+            sliderFrame.Name = "Slider_" .. sliderName
+            sliderFrame.Size = UDim2.new(1, 0, 0, UltimateUI.IsMobile and 80 or 60)
+            sliderFrame.BackgroundColor3 = UltimateUI:GetThemeColor("Secondary")
+            sliderFrame.BorderSizePixel = 0
+            sliderFrame.Parent = self.Content
+            
+            local sliderCorner = Instance.new("UICorner")
+            sliderCorner.CornerRadius = UDim.new(0, 8)
+            sliderCorner.Parent = sliderFrame
+            
+            -- Slider Text
+            local sliderText = Instance.new("TextLabel")
+            sliderText.Name = "Text"
+            sliderText.Size = UDim2.new(0.7, 0, 0, 25)
+            sliderText.Position = UDim2.new(0, 15, 0, 10)
+            sliderText.BackgroundTransparency = 1
+            sliderText.Text = sliderName
+            sliderText.TextColor3 = UltimateUI:GetThemeColor("Text")
+            sliderText.TextSize = UltimateUI.IsMobile and 16 or 14
+            sliderText.TextXAlignment = Enum.TextXAlignment.Left
+            sliderText.Font = Enum.Font.Gotham
+            sliderText.Parent = sliderFrame
+            
+            -- Value Label
+            local valueLabel = Instance.new("TextLabel")
+            valueLabel.Name = "Value"
+            valueLabel.Size = UDim2.new(0.3, -15, 0, 25)
+            valueLabel.Position = UDim2.new(0.7, 0, 0, 10)
+            valueLabel.BackgroundTransparency = 1
+            valueLabel.Text = tostring(UltimateUI.Flags[flag]) .. suffix
+            valueLabel.TextColor3 = UltimateUI:GetThemeColor("Accent")
+            valueLabel.TextSize = UltimateUI.IsMobile and 16 or 14
+            valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+            valueLabel.Font = Enum.Font.GothamBold
+            valueLabel.Parent = sliderFrame
+            
+            -- Slider Track
+            local sliderTrack = Instance.new("Frame")
+            sliderTrack.Name = "Track"
+            sliderTrack.Size = UDim2.new(1, -30, 0, UltimateUI.IsMobile and 8 or 6)
+            sliderTrack.Position = UDim2.new(0, 15, 0, UltimateUI.IsMobile and 45 or 35)
+            sliderTrack.BackgroundColor3 = UltimateUI:GetThemeColor("Border")
+            sliderTrack.BorderSizePixel = 0
+            sliderTrack.Parent = sliderFrame
+            
+            local trackCorner = Instance.new("UICorner")
+            trackCorner.CornerRadius = UDim.new(1, 0)
+            trackCorner.Parent = sliderTrack
+            
+            -- Slider Fill
+            local sliderFill = Instance.new("Frame")
+            sliderFill.Name = "Fill"
+            sliderFill.Size = UDim2.new(0, 0, 1, 0)
+            sliderFill.Position = UDim2.new(0, 0, 0, 0)
+            sliderFill.BackgroundColor3 = UltimateUI:GetThemeColor("Accent")
+            sliderFill.BorderSizePixel = 0
+            sliderFill.Parent = sliderTrack
+            
+            local fillCorner = Instance.new("UICorner")
+            fillCorner.CornerRadius = UDim.new(1, 0)
+            fillCorner.Parent = sliderFill
+            
+            -- Slider Handle
+            local sliderHandle = Instance.new("Frame")
+            sliderHandle.Name = "Handle"
+            sliderHandle.Size = UDim2.new(0, UltimateUI.IsMobile and 20 or 16, 0, UltimateUI.IsMobile and 20 or 16)
+            sliderHandle.Position = UDim2.new(0, 0, 0.5, UltimateUI.IsMobile and -10 or -8)
+            sliderHandle.BackgroundColor3 = Color3.new(1, 1, 1)
+            sliderHandle.BorderSizePixel = 0
+            sliderHandle.Parent = sliderTrack
+            
+            local handleCorner = Instance.new("UICorner")
+            handleCorner.CornerRadius = UDim.new(1, 0)
+            handleCorner.Parent = sliderHandle
+            
+            -- Add theme objects
+            UltimateUI:AddThemeObject(sliderFrame, {BackgroundColor3 = "Secondary"})
+            UltimateUI:AddThemeObject(sliderText, {TextColor3 = "Text"})
+            UltimateUI:AddThemeObject(valueLabel, {TextColor3 = "Accent"})
+            UltimateUI:AddThemeObject(sliderTrack, {BackgroundColor3 = "Border"})
+            UltimateUI:AddThemeObject(sliderFill, {BackgroundColor3 = "Accent"})
+            
+            -- Slider functionality
+            local dragging = false
+            
+            local function updateSlider(value, animate)
+                value = math.clamp(value, range[1], range[2])
+                value = math.floor(value / increment + 0.5) * increment
+                UltimateUI.Flags[flag] = value
+                
+                local percentage = (value - range[1]) / (range[2] - range[1])
+                local fillSize = UDim2.new(percentage, 0, 1, 0)
+                local handlePos = UDim2.new(percentage, UltimateUI.IsMobile and -10 or -8, 0.5, UltimateUI.IsMobile and -10 or -8)
+                
+                valueLabel.Text = tostring(value) .. suffix
+                
+                if animate then
+                    CreateTween(sliderFill, TweenInfo.new(0.1), {Size = fillSize})
+                    CreateTween(sliderHandle, TweenInfo.new(0.1), {Position = handlePos})
+                else
+                    sliderFill.Size = fillSize
+                    sliderHandle.Position = handlePos
+                end
+                
+                if UltimateUI.AutoSave then
+                    UltimateUI:SaveConfig()
+                end
+                
+                SafeCallback(callback, value)
+            end
+            
+            local function getSliderValue(input)
+                local trackStart = sliderTrack.AbsolutePosition.X
+                local trackEnd = trackStart + sliderTrack.AbsoluteSize.X
+                local mouseX = math.clamp(input.Position.X, trackStart, trackEnd)
+                local percentage = (mouseX - trackStart) / sliderTrack.AbsoluteSize.X
+                local value = range[1] + (range[2] - range[1]) * percentage
+                return value
+            end
+            
+            -- Initialize
+            updateSlider(UltimateUI.Flags[flag], false)
+            
+            -- Input events
+            sliderTrack.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    updateSlider(getSliderValue(input), true)
+                    
+                    input.Changed:Connect(function()
+                        if input.UserInputState == Enum.UserInputState.End then
+                            dragging = false
+                        end
+                    end)
+                end
+            end)
+            
+            sliderTrack.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    updateSlider(getSliderValue(input), false)
+                end
+            end)
+            
+            -- Slider object
+            local slider = {
+                Frame = sliderFrame,
+                Flag = flag,
+                Set = function(value)
+                    updateSlider(value, true)
+                end,
+                Get = function()
+                    return UltimateUI.Flags[flag]
+                end,
+            }
+            
+            self.Elements[sliderName] = slider
+            return slider
+        end
+        
+        function tab:CreateButton(options)
+            options = options or {}
+            local buttonName = options.Name or "Button"
+            local callback = options.Callback
+            local description = options.Description or ""
+            
+            -- Button Frame
+            local buttonFrame = Instance.new("Frame")
+            buttonFrame.Name = "Button_" .. buttonName
+            buttonFrame.Size = UDim2.new(1, 0, 0, UltimateUI.IsMobile and 60 or 40)
+            buttonFrame.BackgroundColor3 = UltimateUI:GetThemeColor("Secondary")
+            buttonFrame.BorderSizePixel = 0
+            buttonFrame.Parent = self.Content
+            
+            local buttonCorner = Instance.new("UICorner")
+            buttonCorner.CornerRadius = UDim.new(0, 8)
+            buttonCorner.Parent = buttonFrame
+            
+            -- Button
+            local button = Instance.new("TextButton")
+            button.Name = "Button"
+            button.Size = UDim2.new(1, 0, 1, 0)
+            button.BackgroundColor3 = UltimateUI:GetThemeColor("Accent")
+            button.BorderSizePixel = 0
+            button.Text = buttonName
+            button.TextColor3 = Color3.new(1, 1, 1)
+            button.TextSize = UltimateUI.IsMobile and 16 or 14
+            button.Font = Enum.Font.GothamBold
+            button.Parent = buttonFrame
+            
+            local btnCorner = Instance.new("UICorner")
+            btnCorner.CornerRadius = UDim.new(0, 8)
+            btnCorner.Parent = button
+            
+            -- Add theme objects
+            UltimateUI:AddThemeObject(buttonFrame, {BackgroundColor3 = "Secondary"})
+            UltimateUI:AddThemeObject(button, {BackgroundColor3 = "Accent"})
+            
+            -- Button functionality
+            button.MouseButton1Click:Connect(function()
+                CreateTween(button, TweenInfo.new(0.1), {BackgroundColor3 = UltimateUI:GetThemeColor("Text")})
+                task.wait(0.1)
+                CreateTween(button, TweenInfo.new(0.1), {BackgroundColor3 = UltimateUI:GetThemeColor("Accent")})
+                SafeCallback(callback)
+            end)
+            
+            -- Touch support
+            if UltimateUI.IsMobile then
+                button.TouchTap:Connect(function()
+                    CreateTween(button, TweenInfo.new(0.1), {BackgroundColor3 = UltimateUI:GetThemeColor("Text")})
+                    task.wait(0.1)
+                    CreateTween(button, TweenInfo.new(0.1), {BackgroundColor3 = UltimateUI:GetThemeColor("Accent")})
+                    SafeCallback(callback)
+                end)
+            end
+            
+            -- Button object
+            local buttonObj = {
+                Frame = buttonFrame,
+                Button = button,
+            }
+            
+            self.Elements[buttonName] = buttonObj
+            return buttonObj
+        end
+        
+        function tab:CreateDropdown(options)
+            options = options or {}
+            local dropdownName = options.Name or "Dropdown"
+            local flag = options.Flag or dropdownName:lower():gsub("%s+", "_")
+            local items = options.Items or {"Option 1", "Option 2", "Option 3"}
+            local defaultValue = options.Default or items[1]
+            local callback = options.Callback
+            local multiSelect = options.MultiSelect or false
+            
+            -- Set default flag value
+            UltimateUI.Flags[flag] = UltimateUI.Flags[flag] or (multiSelect and {} or defaultValue)
+            
+            -- Dropdown Frame
+            local dropdownFrame = Instance.new("Frame")
+            dropdownFrame.Name = "Dropdown_" .. dropdownName
+            dropdownFrame.Size = UDim2.new(1, 0, 0, UltimateUI.IsMobile and 60 or 40)
+            dropdownFrame.BackgroundColor3 = UltimateUI:GetThemeColor("Secondary")
+            dropdownFrame.BorderSizePixel = 0
+            dropdownFrame.Parent = self.Content
+            
+            local dropdownCorner = Instance.new("UICorner")
+            dropdownCorner.CornerRadius = UDim.new(0, 8)
+            dropdownCorner.Parent = dropdownFrame
+            
+            -- Dropdown Button
+            local dropdownBtn = Instance.new("TextButton")
+            dropdownBtn.Name = "Button"
+            dropdownBtn.Size = UDim2.new(1, 0, 1, 0)
+            dropdownBtn.BackgroundTransparency = 1
+            dropdownBtn.Text = ""
+            dropdownBtn.Parent = dropdownFrame
+            
+            -- Dropdown Text
+            local dropdownText = Instance.new("TextLabel")
+            dropdownText.Name = "Text"
+            dropdownText.Size = UDim2.new(1, -40, 1, 0)
+            dropdownText.Position = UDim2.new(0, 15, 0, 0)
+            dropdownText.BackgroundTransparency = 1
+            dropdownText.Text = dropdownName
+            dropdownText.TextColor3 = UltimateUI:GetThemeColor("Text")
+            dropdownText.TextSize = UltimateUI.IsMobile and 16 or 14
+            dropdownText.TextXAlignment = Enum.TextXAlignment.Left
+            dropdownText.Font = Enum.Font.Gotham
+            dropdownText.Parent = dropdownFrame
+            
+            -- Dropdown Value
+            local dropdownValue = Instance.new("TextLabel")
+            dropdownValue.Name = "Value"
+            dropdownValue.Size = UDim2.new(0, 100, 1, 0)
+            dropdownValue.Position = UDim2.new(1, -120, 0, 0)
+            dropdownValue.BackgroundTransparency = 1
+            dropdownValue.Text = multiSelect and "Multiple" or tostring(UltimateUI.Flags[flag])
+            dropdownValue.TextColor3 = UltimateUI:GetThemeColor("Accent")
+            dropdownValue.TextSize = UltimateUI.IsMobile and 14 or 12
+            dropdownValue.TextXAlignment = Enum.TextXAlignment.Right
+            dropdownValue.Font = Enum.Font.Gotham
+            dropdownValue.Parent = dropdownFrame
+            
+            -- Dropdown Arrow
+            local dropdownArrow = Instance.new("ImageLabel")
+            dropdownArrow.Name = "Arrow"
+            dropdownArrow.Size = UDim2.new(0, 16, 0, 16)
+            dropdownArrow.Position = UDim2.new(1, -25, 0.5, -8)
+            dropdownArrow.BackgroundTransparency = 1
+            dropdownArrow.Image = UltimateUI.Icons.arrow_down
+            dropdownArrow.ImageColor3 = UltimateUI:GetThemeColor("TextSecondary")
+            dropdownArrow.Parent = dropdownFrame
+            
+            -- Dropdown List
+            local dropdownList = Instance.new("Frame")
+            dropdownList.Name = "List"
+            dropdownList.Size = UDim2.new(1, 0, 0, 0)
+            dropdownList.Position = UDim2.new(0, 0, 1, 5)
+            dropdownList.BackgroundColor3 = UltimateUI:GetThemeColor("Background")
+            dropdownList.BorderSizePixel = 0
+            dropdownList.Visible = false
+            dropdownList.ZIndex = 10
+            dropdownList.Parent = dropdownFrame
+            
+            local listCorner = Instance.new("UICorner")
+            listCorner.CornerRadius = UDim.new(0, 8)
+            listCorner.Parent = dropdownList
+            
+            local listLayout = Instance.new("UIListLayout")
+            listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+            listLayout.Parent = dropdownList
+            
+            -- Add theme objects
+            UltimateUI:AddThemeObject(dropdownFrame, {BackgroundColor3 = "Secondary"})
+            UltimateUI:AddThemeObject(dropdownText, {TextColor3 = "Text"})
+            UltimateUI:AddThemeObject(dropdownValue, {TextColor3 = "Accent"})
+            UltimateUI:AddThemeObject(dropdownArrow, {ImageColor3 = "TextSecondary"})
+            UltimateUI:AddThemeObject(dropdownList, {BackgroundColor3 = "Background"})
+            
+            -- Create dropdown items
+            local function createItems()
+                for _, child in pairs(dropdownList:GetChildren()) do
+                    if child:IsA("TextButton") then
+                        child:Destroy()
+                    end
+                end
+                
+                for i, item in pairs(items) do
+                    local itemBtn = Instance.new("TextButton")
+                    itemBtn.Name = "Item_" .. tostring(i)
+                    itemBtn.Size = UDim2.new(1, 0, 0, UltimateUI.IsMobile and 40 : 30)
+                    itemBtn.BackgroundColor3 = UltimateUI:GetThemeColor("Secondary")
+                    itemBtn.BorderSizePixel = 0
+                    itemBtn.Text = tostring(item)
+                    itemBtn.TextColor3 = UltimateUI:GetThemeColor("Text")
+                    itemBtn.TextSize = UltimateUI.IsMobile and 14 or 12
+                    itemBtn.Font = Enum.Font.Gotham
+                    itemBtn.LayoutOrder = i
+                    itemBtn.Parent = dropdownList
+                    
+                    UltimateUI:AddThemeObject(itemBtn, {BackgroundColor3 = "Secondary", TextColor3 = "Text"})
+                    
+                    itemBtn.MouseButton1Click:Connect(function()
+                        if multiSelect then
+                            local selected = UltimateUI.Flags[flag]
+                            local index = table.find(selected, item)
+                            if index then
+                                table.remove(selected, index)
+                                itemBtn.BackgroundColor3 = UltimateUI:GetThemeColor("Secondary")
+                            else
+                                table.insert(selected, item)
+                                itemBtn.BackgroundColor3 = UltimateUI:GetThemeColor("Accent")
+                            end
+                            UltimateUI.Flags[flag] = selected
+                            dropdownValue.Text = #selected > 0 and tostring(#selected) .. " selected" or "None selected"
+                        else
+                            UltimateUI.Flags[flag] = item
+                            dropdownValue.Text = tostring(item)
+                            dropdownList.Visible = false
+                            dropdownArrow.Rotation = 0
+                        end
+                        
+                        if UltimateUI.AutoSave then
+                            UltimateUI:SaveConfig()
+                        end
+                        
+                        SafeCallback(callback, UltimateUI.Flags[flag])
+                    end)
+                    
+                    -- Touch support
+                    if UltimateUI.IsMobile then
+                        itemBtn.TouchTap:Connect(function()
+                            if multiSelect then
+                                local selected = UltimateUI.Flags[flag]
+                                local index = table.find(selected, item)
+                                if index then
+                                    table.remove(selected, index)
+                                    itemBtn.BackgroundColor3 = UltimateUI:GetThemeColor("Secondary")
+                                else
+                                    table.insert(selected, item)
+                                    itemBtn.BackgroundColor3 = UltimateUI:GetThemeColor("Accent")
+                                end
+                                UltimateUI.Flags[flag] = selected
+                                dropdownValue.Text = #selected > 0 and tostring(#selected) .. " selected" or "None selected"
+                            else
+                                UltimateUI.Flags[flag] = item
+                                dropdownValue.Text = tostring(item)
+                                dropdownList.Visible = false
+                                dropdownArrow.Rotation = 0
+                            end
+                            
+                            if UltimateUI.AutoSave then
+                                UltimateUI:SaveConfig()
+                            end
+                            
+                            SafeCallback(callback, UltimateUI.Flags[flag])
+                        end)
+                    end
+                end
+                
+                -- Update list size
+                local contentSize = listLayout.AbsoluteContentSize.Y
+                dropdownList.Size = UDim2.new(1, 0, 0, math.min(contentSize, UltimateUI.IsMobile and 200 or 150))
+            end
+            
+            createItems()
+            
+            -- Dropdown toggle
+            local function toggleDropdown()
+                dropdownList.Visible = not dropdownList.Visible
+                dropdownArrow.Rotation = dropdownList.Visible and 180 or 0
+            end
+            
+            dropdownBtn.MouseButton1Click:Connect(toggleDropdown)
+            
+            -- Touch support
+            if UltimateUI.IsMobile then
+                dropdownBtn.TouchTap:Connect(toggleDropdown)
+            end
+            
+            -- Initialize multiselect
+            if multiSelect then
+                dropdownValue.Text = #UltimateUI.Flags[flag] > 0 and tostring(#UltimateUI.Flags[flag]) .. " selected" or "None selected"
+            end
+            
+            -- Dropdown object
+            local dropdown = {
+                Frame = dropdownFrame,
+                Flag = flag,
+                Items = items,
+                Set = function(value)
+                    UltimateUI.Flags[flag] = value
+                    if multiSelect then
+                        dropdownValue.Text = #value > 0 and tostring(#value) .. " selected" or "None selected"
+                    else
+                        dropdownValue.Text = tostring(value)
+                    end
+                    if UltimateUI.AutoSave then
+                        UltimateUI:SaveConfig()
+                    end
+                    SafeCallback(callback, value)
+                end,
+                Get = function()
+                    return UltimateUI.Flags[flag]
+                end,
+                UpdateItems = function(newItems)
+                    items = newItems
+                    createItems()
+                end,
+            }
+            
+            self.Elements[dropdownName] = dropdown
+            return dropdown
+        end
+        
+        function tab:CreateSection(options)
+            options = options or {}
+            local sectionName = options.Name or "Section"
+            
+            -- Section Frame
+            local sectionFrame = Instance.new("Frame")
+            sectionFrame.Name = "Section_" .. sectionName
+            sectionFrame.Size = UDim2.new(1, 0, 0, 30)
+            sectionFrame.BackgroundTransparency = 1
+            sectionFrame.Parent = self.Content
+            
+            -- Section Text
+            local sectionText = Instance.new("TextLabel")
+            sectionText.Name = "Text"
+            sectionText.Size = UDim2.new(1, 0, 1, 0)
+            sectionText.BackgroundTransparency = 1
+            sectionText.Text = sectionName
+            sectionText.TextColor3 = UltimateUI:GetThemeColor("Accent")
+            sectionText.TextSize = UltimateUI.IsMobile and 18 or 16
+            sectionText.TextXAlignment = Enum.TextXAlignment.Left
+            sectionText.Font = Enum.Font.GothamBold
+            sectionText.Parent = sectionFrame
+            
+            UltimateUI:AddThemeObject(sectionText, {TextColor3 = "Accent"})
+            
+            return sectionFrame
+        end
+        
+        return tab
+    end
+    
+    return window
+end
+
+function UltimateUI:ToggleWindow()
+    self.WindowVisible = not self.WindowVisible
+    
+    if self.GUI then
+        local mainFrame = self.GUI:FindFirstChild("MainFrame")
+        if mainFrame then
+            mainFrame.Visible = self.WindowVisible
+            
+            if self.MobileToggle then
+                self.MobileToggle.Text = self.WindowVisible and "−" or "UI"
+            end
+        end
+    end
+    
+    if self.AutoSave then
+        self:SaveConfig()
+    end
+end
+
+function UltimateUI:Destroy()
+    self:Disconnect()
+    
+    if self.GUI then
+        self.GUI:Destroy()
+    end
+    
+    -- Clear references
+    self.Objects = {}
+    self.ThemeObjects = {}
+    self.FontObjects = {}
+    self.LocalizationObjects = {}
+    self.Flags = {}
+end
+
+-- Initialize
+UltimateUI:CreateFolder()
+
+return UltimateUI
